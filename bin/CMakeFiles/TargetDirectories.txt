@@ -1,0 +1,3 @@
+C:/Users/Sabin/Desktop/Photometric-Stereo-master/bin/CMakeFiles/main.dir
+C:/Users/Sabin/Desktop/Photometric-Stereo-master/bin/CMakeFiles/ALL_BUILD.dir
+C:/Users/Sabin/Desktop/Photometric-Stereo-master/bin/CMakeFiles/ZERO_CHECK.dir
