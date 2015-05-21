@@ -1,12 +1,29 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="C:\Users\Sabin\Desktop\Photometric-Stereo-master\src\Display3DMesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Sabin\Desktop\Photometric-Stereo-master\src\LightDirection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\Sabin\Desktop\Photometric-Stereo-master\src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\Display3DMesh.cpp" />
-    <ClCompile Include="..\src\PhotometricStereo.cpp" />
-    <ClCompile Include="..\src\LightDirection.cpp" />
+    <ClCompile Include="C:\Users\Sabin\Desktop\Photometric-Stereo-master\src\PhotometricStereo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\Sabin\Desktop\Photometric-Stereo-master\src\Display3DMesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Sabin\Desktop\Photometric-Stereo-master\src\LightDirection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Sabin\Desktop\Photometric-Stereo-master\src\PhotometricStereo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="C:\Users\Sabin\Desktop\Photometric-Stereo-master\CMakeLists.txt" />
@@ -15,10 +32,8 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{B1502735-DC6B-4282-A318-2D98F0A4DF78}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\src\Display3DMesh.h" />
-    <ClInclude Include="..\src\PhotometricStereo.h" />
-    <ClInclude Include="..\src\LightDirection.h" />
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{046BC982-E61B-4BB7-9F41-89BE58166BA6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

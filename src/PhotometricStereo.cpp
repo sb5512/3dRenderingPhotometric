@@ -56,18 +56,38 @@ void PhotometricStereo::calculateNormalAndPQGradient(){
 
 	cv::Mat Pgrads(height, width, CV_32F, cv::Scalar::all(0));
 	cv::Mat Qgrads(height, width, CV_32F, cv::Scalar::all(0));
+
+
+
+	cv::Mat albedo1;//(height, width, CV_32FC3, cv::Scalar::all(0));
+	modelImages[0].convertTo(albedo1, CV_32FC3 , 1/255.0);
+	cv::Mat albedo2;//(height, width, CV_32FC3, cv::Scalar::all(0));
+	//modelImages[1].convertTo(albedo2, CV_32FC3, 1 / 255.0);
+	cv::Mat albedo3;//(height, width, CV_32FC3, cv::Scalar::all(0));
+	//modelImages[2].convertTo(albedo3, CV_32FC3, 1 / 255.0);
+
 	const int NUM_IMGSS = 4;
 	/* estimate surface normals and p,q gradients */
+	cout << "image width " << width;
+	cout << "image Height "<< height;
 	for (int x = 0; x<width; x++) {
 		for (int y = 0; y<height; y++) {
 			Vec<float, NUM_IMGSS> I;  // TODO:.........................
 			for (int i = 0; i < NUM_IMGS; i++) {
-				I[i] = modelImages[i].at<uchar>(Point(x, y));
+				I[i] = modelImages[i].at<uchar>(y, x);
 			}
 
 			cv::Mat n = lightDirection * cv::Mat(I);
+			// getting the albedo here 
 			float p = sqrt(cv::Mat(n).dot(n));
-			if (p > 0) { n = n / p; }
+			
+			if (p > 0) { n = n / p; 
+			   //albedo1.at<float>(Point(x, y)) /= p;
+			//cout << p << " <<<ppppp" << endl;
+			//cout << endl << " picture Red value" << albedo1.at<float>(Point(x, y));
+			albedo1.at<float>(Point(x, y)) /= (p/255);
+			}
+
 			if (n.at<float>(2, 0) == 0) { n.at<float>(2, 0) = 1.0; }
 			int legit = 1;
 			/* avoid spikes ad edges */
@@ -76,6 +96,28 @@ void PhotometricStereo::calculateNormalAndPQGradient(){
 			}
 			if (legit) {
 				Normals.at<cv::Vec3f>(cv::Point(x, y)) = n;
+				
+				if ((Normals.at<cv::Vec3f>(cv::Point(x, y))[0]<0) || (Normals.at<cv::Vec3f>(cv::Point(x, y))[1] < 0) + (Normals.at<cv::Vec3f>(cv::Point(x, y))[2] <0)){//albedo1.at<float>(Point(x, y)) != 0 ){//&& Normals.at<cv::Vec3f>(cv::Point(x, y))[0] != 1 && Normals.at<cv::Vec3f>(cv::Point(x, y))[0] != 0){// modelImages[0].at<Vec3b>(Point(x, y))[0] != 0 && modelImages[0].at<Vec3b>(Point(x, y))[1] != 0 && modelImages[0].at<Vec3b>(Point(x, y))[2] != 0){
+				    //cout << modelImages[0].at<Vec3b>(Point(x, y)) ;
+					//cout << "    normal is  " << n;
+					//cout << static_cast<unsigned>(Normals.at<uchar>(cv::Point(x, y)));
+					//cout <</*Normals.at<cv::Vec3f>(cv::Point(x, y))*/ static_cast<unsigned>(modelImages[0].at<uchar>(Point(x, y))) << endl;
+				//cv:Vec3f k = { 0.0, 0.0, 0.0 };
+					float average = abs(Normals.at<cv::Vec3f>(cv::Point(x, y))[0]) + abs(Normals.at<cv::Vec3f>(cv::Point(x, y))[1]) + abs(Normals.at<cv::Vec3f>(cv::Point(x, y))[2]);
+				    //cout << "albedo " << albedo.at<float>(Point(x, y)) << endl; //= 255;
+
+				   //cout << "normal" << Normals.at<Vec3f>(cv::Point(x, y)) << endl ;
+				   //cout << "average normal is " << average / 3.0 <<endl;
+				   //if (average >= 0){
+					 
+					   //albedo2.at<float>(Point(x, y)) /= average;
+					   //albedo3.at<float>(Point(x, y)) /= average;
+
+
+				   //}
+				}
+				//albedo.at<uchar>(Point(x, y)) = static_cast<unsigned>(modelImages[0].at<uchar>(Point(x, y)));
+
 				if (!((n.at<float>(2, 0) == 1) && (n.at<float>(0, 0) == 0) && (n.at<float>(1, 0) == 0))){
 					//cout << "Normals at " << x << " , " << y << "is -> " << n;// .at<float>(0, 0);
 				}
@@ -90,8 +132,17 @@ void PhotometricStereo::calculateNormalAndPQGradient(){
 				Pgrads.at<float>(cv::Point(x, y)) = 0.0f;
 				Qgrads.at<float>(cv::Point(x, y)) = 0.0f;
 			}
-
+			
+			
 		}
+		namedWindow("Albedo1", WINDOW_AUTOSIZE);// Create a window for display.
+		imshow("Albedo1", albedo1);
+		/*
+		namedWindow("Albedo2", WINDOW_AUTOSIZE);// Create a window for display.
+		imshow("Albedo2", albedo2);
+		namedWindow("Albedo3", WINDOW_AUTOSIZE);// Create a window for display.
+		imshow("Albedo3", albedo2);*/
+		
 		this->normal = Normals;
 		this->pGradient = Pgrads;
 		this->qGradient = Qgrads;
@@ -129,8 +180,12 @@ cv::Mat PhotometricStereo :: globalHeights(cv::Mat Pgrads, cv::Mat Qgrads) {
 	Z.at<cv::Vec2f>(0, 0)[1] = 0.0f;
 
 	cv::dft(Z, Z, cv::DFT_INVERSE | cv::DFT_SCALE | cv::DFT_REAL_OUTPUT);
+
+	cv::Mat heightMap(Pgrads.rows, Pgrads.cols, CV_32FC2, cv::Scalar::all(0));
+
+	cv::normalize(Z, heightMap, 0, 1, cv::NORM_MINMAX);
 	namedWindow("HeightMap", WINDOW_AUTOSIZE);// Create a window for display.
-	imshow("HeightMap", Z);
+	imshow("HeightMap", heightMap);
 
 	return Z;
 }
