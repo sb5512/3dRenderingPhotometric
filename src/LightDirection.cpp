@@ -24,8 +24,8 @@ cv::Vec3f LightDirection::lightDirectionFromMirrorBall(Mat Image){
 	const float radiusOfSphereH = boundingRectForMask.height / 2.0f;
 	const float radiusOfSphereW = boundingRectForMask.width / 2.0f;
 
-	cout << "MY Actual center of radius " << boundingRectForMask.height / 2.0f << endl;
-	cout << "MY Actual center of radius  width " << boundingRectForMask.width / 2.0f << endl;
+	cout <<endl << "MY Actual center of radius height" << boundingRectForMask.height / 2.0f << endl;
+	cout << endl <<"MY Actual center of radius  width " << boundingRectForMask.width / 2.0f << endl;
 	Mat Binary;
 	threshold(Image, Binary, THRESH, 255, CV_THRESH_BINARY);
 	Mat SubImage(Binary, boundingRectForMask);
@@ -39,8 +39,10 @@ cv::Vec3f LightDirection::lightDirectionFromMirrorBall(Mat Image){
 	Moments centerOfMassWhitePixel = moments(SubImage, false);
 	Point center(centerOfMassWhitePixel.m10 / centerOfMassWhitePixel.m00, centerOfMassWhitePixel.m01 / centerOfMassWhitePixel.m00);
 	cv::circle(SubImage, center, 10, 128);
-	namedWindow("Display window", WINDOW_AUTOSIZE);// Create a window for display.
-	imshow("Display window", SubImage);
+
+	//namedWindow("Display window", WINDOW_AUTOSIZE);// Create a window for display.
+	//imshow("Display window", SubImage);
+
 	//center.x = 119.5;
 	//center.y = 119.5;
 	std::cout << "x " <<center.x << "y " << center.y << "radius" << radiusOfSphereH;
@@ -56,8 +58,8 @@ cv::Vec3f LightDirection::lightDirectionFromMirrorBall(Mat Image){
 	float zDirection = sqrt(1.0 - pow(xDirection, 2.0) - pow(yDirection, 2.0));*/
 
 	// x,y are swapped here 
-	float xDirection = (-center.y + radiusOfSphereW) / (radiusOfSphereW);
-	float yDirection = (-center.x + radiusOfSphereH) / (radiusOfSphereW);
+	float xDirection = (center.y - radiusOfSphereH) / (radiusOfSphereH);
+	float yDirection = (center.x - radiusOfSphereW) / (radiusOfSphereW);
 	float zDirection = sqrt(1.0 - pow(xDirection, 2.0) - pow(yDirection, 2.0));
 
 	//The above xDirection , yDirection ,zDirection gave us the Normal. Hence the following calculation (using reflection formula) to get the actual light direction.

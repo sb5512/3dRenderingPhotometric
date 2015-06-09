@@ -20,6 +20,7 @@ private:
 	const string MODEL;
     vector<Mat> calibImages;
 	vector<Mat> modelImages;
+	vector<Mat> modelImagesGrey;
 	Mat lightDirection;
 	void calculateNormalAndPQGradient();
 	void initialiseImagesANDLightdirection();

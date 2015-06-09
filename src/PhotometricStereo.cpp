@@ -26,10 +26,17 @@ void PhotometricStereo::initialiseImagesANDLightdirection(){
 	for (int i = 0; i < NUM_IMGS; i++) {
 		Mat Calib = imread(CALIBRATION + to_string(i) + ".png",
 			CV_LOAD_IMAGE_GRAYSCALE);
-		Mat tmp = imread(MODEL + to_string(i) + ".png",
+		//Trying to load grayscale image
+		Mat tmp2 = imread(MODEL + to_string(i) + ".png",
 			CV_LOAD_IMAGE_GRAYSCALE);
+
+		//Trying to load colour image
+	    Mat tmp = imread(MODEL + to_string(i) + ".png");
+
 		cv::Mat Model;
+		cv::Mat ModelGrey;
 		tmp.copyTo(Model, ModelMask);
+		tmp2.copyTo(ModelGrey, ModelMask);
 		Vec3f light = lightDirectionObj.lightDirectionFromMirrorBall(Calib);
 		Lights.at<float>(i, 0) = light[0];
 		Lights.at<float>(i, 1) = light[1];
@@ -40,16 +47,39 @@ void PhotometricStereo::initialiseImagesANDLightdirection(){
 
 		calibImages.push_back(Calib);
 		modelImages.push_back(Model);
-		//namedWindow("Display windowsss", WINDOW_AUTOSIZE);// Create a window for display.
-		//imshow("Display windowss", Model);
+		modelImagesGrey.push_back(ModelGrey);
+		//namedWindow("Display", WINDOW_AUTOSIZE);// Create a window for display.
+		//imshow("Display", ModelGrey);
 	}
+
+
+	/* Testing peoples
+	Lights.at<float>(0, 0) = -0.034;
+	Lights.at<float>(0, 1) = 0.498;
+	Lights.at<float>(0, 2) = 0.866;
+
+	Lights.at<float>(1, 0) = -0.092;
+	Lights.at<float>(1, 1) = 0.287;
+	Lights.at<float>(1, 2) = 0.953;
+
+	Lights.at<float>(2, 0) = 0.021;
+	Lights.at<float>(2, 1) = -0.357;
+	Lights.at<float>(2, 2) = 0.933;
+
+	Lights.at<float>(3, 0) = -0.663;
+	Lights.at<float>(3, 1) = 0.128;
+	Lights.at<float>(3, 2) = 0.736;
+
+	// TEsting ENDS */
+
+
 	cv::invert(Lights, this->lightDirection, cv::DECOMP_SVD);
 }
 
 void PhotometricStereo::calculateNormalAndPQGradient(){
-	const int height = calibImages[0].rows;
-	const int width = calibImages[0].cols;
-
+	const int height = modelImages[0].rows;
+	const int width = modelImages[0].cols;
+	float sumNormals;
 	/* light directions, surface normals, p,q gradients */
 
 	cv::Mat Normals(height, width, CV_32FC3, cv::Scalar::all(0));
@@ -59,94 +89,94 @@ void PhotometricStereo::calculateNormalAndPQGradient(){
 
 
 
-	cv::Mat albedo1;//(height, width, CV_32FC3, cv::Scalar::all(0));
-	modelImages[0].convertTo(albedo1, CV_32FC3 , 1/255.0);
-	cv::Mat albedo2;//(height, width, CV_32FC3, cv::Scalar::all(0));
-	//modelImages[1].convertTo(albedo2, CV_32FC3, 1 / 255.0);
-	cv::Mat albedo3;//(height, width, CV_32FC3, cv::Scalar::all(0));
-	//modelImages[2].convertTo(albedo3, CV_32FC3, 1 / 255.0);
+	cv::Mat albedo1(height, width, CV_32FC3, cv::Scalar::all(0));
+	cv::Mat albedoToSave(height, width, CV_32FC3, cv::Scalar::all(0));
+	//modelImages[0].convertTo(albedo1, CV_32FC3 , 1/255.0);
 
 	const int NUM_IMGSS = 4;
 	/* estimate surface normals and p,q gradients */
-	cout << "image width " << width;
-	cout << "image Height "<< height;
-	for (int x = 0; x<width; x++) {
-		for (int y = 0; y<height; y++) {
-			Vec<float, NUM_IMGSS> I;  // TODO:.........................
-			for (int i = 0; i < NUM_IMGS; i++) {
-				I[i] = modelImages[i].at<uchar>(y, x);
-			}
+	cout << "image width " << width << endl;
+	cout << "image Height "<< height << endl;
+	cout << "image width grey" << modelImagesGrey[0].cols << endl;
+	cout << "image Height grey" << modelImagesGrey[0].rows << endl;
+	for (int albedoCalculation = 0; albedoCalculation < 3; albedoCalculation++){
+		for (int x = 0; x < width; x++) {
+			for (int y = 0; y < height; y++) {
+				Vec<float, NUM_IMGSS> I;  // TODO:.........................
+				Vec<float, NUM_IMGSS> I2;
+				for (int i = 0; i < NUM_IMGS; i++) {
+					if (albedoCalculation == 1){
+						// Loading the grey scale image for calculating the normal as we loose data for non white object
+						I2[i] = modelImagesGrey[i].at<uchar>(y, x);
+					}
+					// Trying to load only one channel at a time. initially with Blue and Green and then Red
+					I[i] = modelImages[i].at<Vec3b>(Point(x, y))[albedoCalculation];
+				}
 
-			cv::Mat n = lightDirection * cv::Mat(I);
-			// getting the albedo here 
-			float p = sqrt(cv::Mat(n).dot(n));
-			
-			if (p > 0) { n = n / p; 
-			   //albedo1.at<float>(Point(x, y)) /= p;
-			//cout << p << " <<<ppppp" << endl;
-			//cout << endl << " picture Red value" << albedo1.at<float>(Point(x, y));
-			albedo1.at<float>(Point(x, y)) /= (p/255);
-			}
+				cv::Mat n = lightDirection * cv::Mat(I);
+				// getting the albedo here 
+				float p = sqrt(cv::Mat(n).dot(n));
 
-			if (n.at<float>(2, 0) == 0) { n.at<float>(2, 0) = 1.0; }
-			int legit = 1;
-			/* avoid spikes ad edges */
-			for (int i = 0; i < NUM_IMGS; i++) {
-				legit *= modelImages[i].at<uchar>(Point(x, y)) >= 0;
-			}
-			if (legit) {
-				Normals.at<cv::Vec3f>(cv::Point(x, y)) = n;
+				if (p > 0) {
+					n = n / p;
+					albedoToSave.at<Vec3f>(Point(x, y))[albedoCalculation] = p;
+					albedo1.at<Vec3f>(Point(x, y))[albedoCalculation] = p/255;
+					//cout << endl <<"Albedo p for Blue" << p << endl;
+				}
 				
-				if ((Normals.at<cv::Vec3f>(cv::Point(x, y))[0]<0) || (Normals.at<cv::Vec3f>(cv::Point(x, y))[1] < 0) + (Normals.at<cv::Vec3f>(cv::Point(x, y))[2] <0)){//albedo1.at<float>(Point(x, y)) != 0 ){//&& Normals.at<cv::Vec3f>(cv::Point(x, y))[0] != 1 && Normals.at<cv::Vec3f>(cv::Point(x, y))[0] != 0){// modelImages[0].at<Vec3b>(Point(x, y))[0] != 0 && modelImages[0].at<Vec3b>(Point(x, y))[1] != 0 && modelImages[0].at<Vec3b>(Point(x, y))[2] != 0){
-				    //cout << modelImages[0].at<Vec3b>(Point(x, y)) ;
-					//cout << "    normal is  " << n;
-					//cout << static_cast<unsigned>(Normals.at<uchar>(cv::Point(x, y)));
-					//cout <</*Normals.at<cv::Vec3f>(cv::Point(x, y))*/ static_cast<unsigned>(modelImages[0].at<uchar>(Point(x, y))) << endl;
-				//cv:Vec3f k = { 0.0, 0.0, 0.0 };
-					float average = abs(Normals.at<cv::Vec3f>(cv::Point(x, y))[0]) + abs(Normals.at<cv::Vec3f>(cv::Point(x, y))[1]) + abs(Normals.at<cv::Vec3f>(cv::Point(x, y))[2]);
-				    //cout << "albedo " << albedo.at<float>(Point(x, y)) << endl; //= 255;
+				if (albedoCalculation == 1){
+					cv::Mat normalAllChannel = lightDirection * cv::Mat(I2);
 
-				   //cout << "normal" << Normals.at<Vec3f>(cv::Point(x, y)) << endl ;
-				   //cout << "average normal is " << average / 3.0 <<endl;
-				   //if (average >= 0){
-					 
-					   //albedo2.at<float>(Point(x, y)) /= average;
-					   //albedo3.at<float>(Point(x, y)) /= average;
+					float p2 = sqrt(cv::Mat(normalAllChannel).dot(normalAllChannel));
 
+					if (p2 > 0) {
+						normalAllChannel = normalAllChannel / p2;
+					}
+					if (normalAllChannel.at<float>(2, 0) == 0) { normalAllChannel.at<float>(2, 0) = 1.0; }
+					if (n.at<float>(2, 0) == 0) { n.at<float>(2, 0) = 1.0; }
 
-				   //}
+					int legit = 1;
+
+					//Note two things to change for only green channel
+					/* avoid spikes at edges */
+					for (int i = 0; i < NUM_IMGS; i++) {
+						//For all Channels
+						legit *= modelImagesGrey[i].at<uchar>(Point(x, y)) >= 0;
+
+						//For Green only
+						//legit *= modelImages[i].at<uchar>(Point(x, y)) >= 0;
+					}
+					if (legit) {
+						//For all Channels
+						Normals.at<cv::Vec3f>(cv::Point(x, y)) = normalAllChannel;
+						Pgrads.at<float>(cv::Point(x, y)) = normalAllChannel.at<float>(0, 0) / normalAllChannel.at<float>(2, 0);
+						Qgrads.at<float>(cv::Point(x, y)) = normalAllChannel.at<float>(1, 0) / normalAllChannel.at<float>(2, 0);
+						/*
+
+						//For Green only
+						Normals.at<cv::Vec3f>(cv::Point(x, y)) = n;
+						Pgrads.at<float>(cv::Point(x, y)) = n.at<float>(0, 0) / n.at<float>(2, 0);
+						Qgrads.at<float>(cv::Point(x, y)) = n.at<float>(1, 0) / n.at<float>(2, 0);*/
+						
+					}
+					else {
+						cv::Vec3f nullvec(0.0f, 0.0f, 1.0f);
+						Normals.at<cv::Vec3f>(cv::Point(x, y)) = nullvec;
+						Pgrads.at<float>(cv::Point(x, y)) = 0.0f;
+						Qgrads.at<float>(cv::Point(x, y)) = 0.0f;
+					}
 				}
-				//albedo.at<uchar>(Point(x, y)) = static_cast<unsigned>(modelImages[0].at<uchar>(Point(x, y)));
-
-				if (!((n.at<float>(2, 0) == 1) && (n.at<float>(0, 0) == 0) && (n.at<float>(1, 0) == 0))){
-					//cout << "Normals at " << x << " , " << y << "is -> " << n;// .at<float>(0, 0);
-				}
-
-				Pgrads.at<float>(cv::Point(x, y)) = n.at<float>(0, 0) / n.at<float>(2, 0);
-				Qgrads.at<float>(cv::Point(x, y)) = n.at<float>(1, 0) / n.at<float>(2, 0);
-				//cout << "nat0,0 " << n.at<float>(0, 0);
 			}
-			else {
-				cv::Vec3f nullvec(0.0f, 0.0f, 1.0f);
-				Normals.at<cv::Vec3f>(cv::Point(x, y)) = nullvec;
-				Pgrads.at<float>(cv::Point(x, y)) = 0.0f;
-				Qgrads.at<float>(cv::Point(x, y)) = 0.0f;
-			}
-			
-			
 		}
-		namedWindow("Albedo1", WINDOW_AUTOSIZE);// Create a window for display.
-		imshow("Albedo1", albedo1);
-		/*
-		namedWindow("Albedo2", WINDOW_AUTOSIZE);// Create a window for display.
-		imshow("Albedo2", albedo2);
-		namedWindow("Albedo3", WINDOW_AUTOSIZE);// Create a window for display.
-		imshow("Albedo3", albedo2);*/
-		
+
 		this->normal = Normals;
 		this->pGradient = Pgrads;
 		this->qGradient = Qgrads;
 	}
+	//cv::Mat albedo2(height, width, CV_32FC3, cv::Scalar::all(100));
+	namedWindow("Albedo1", WINDOW_AUTOSIZE);// Create a window for display.
+	imwrite("../images/Albedo.jpg", albedoToSave);
+	imshow("Albedo1", albedo1);
 }
 
 cv::Mat PhotometricStereo :: globalHeights(cv::Mat Pgrads, cv::Mat Qgrads) {
@@ -182,10 +212,12 @@ cv::Mat PhotometricStereo :: globalHeights(cv::Mat Pgrads, cv::Mat Qgrads) {
 	cv::dft(Z, Z, cv::DFT_INVERSE | cv::DFT_SCALE | cv::DFT_REAL_OUTPUT);
 
 	cv::Mat heightMap(Pgrads.rows, Pgrads.cols, CV_32FC2, cv::Scalar::all(0));
+	cv::Mat heightMapShow(Pgrads.rows, Pgrads.cols, CV_32FC2, cv::Scalar::all(0));
 
-	cv::normalize(Z, heightMap, 0, 1, cv::NORM_MINMAX);
+	cv::normalize(Z, heightMap, 0, 255, cv::NORM_MINMAX);
+	cv::normalize(Z, heightMapShow, 0, 1, cv::NORM_MINMAX);
 	namedWindow("HeightMap", WINDOW_AUTOSIZE);// Create a window for display.
-	imshow("HeightMap", heightMap);
-
+	imshow("HeightMap", heightMapShow);
+	imwrite("../images/HeightMap.jpg", heightMap);
 	return Z;
 }
